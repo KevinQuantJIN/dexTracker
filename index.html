@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multi-Token DEX Charts</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f0f0f0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 10px;
+        }
+        .chart-container {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+            flex-grow: 1;
+            width: 100%;
+        }
+        .chart-wrapper {
+            display: flex;
+            flex-direction: column;
+        }
+        .chart {
+            flex-grow: 1;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+        .input-container {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        input, select, button {
+            padding: 5px;
+            font-size: 14px;
+        }
+        .copy-btn, .last-btn {
+            cursor: pointer;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 3px;
+        }
+        .last-btn {
+            background-color: #2196F3;
+        }
+        @media (max-width: 768px) {
+            .chart-container {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>Multi-Token DEX Charts</h1>
+    <div class="chart-container" id="chartContainer"></div>
+
+    <script>
+        const chains = ['ethereum', 'bsc', 'polygon', 'avalanche', 'fantom', 'arbitrum', 'optimism', 'solana'];
+        const defaultTokenPairs = [
+            'solana/2rpu9bsxraeuwtc7memcq6e9p1x1vckfzrrd94rw14jw',
+            'solana/7cnqmfrp4owjbalzj4ygrvh5x1dkpzv6cungwagvxwat',
+            'ethereum/0x6b175474e89094c44da98b954eedeac495271d0f',
+            'ethereum/0x514910771af9ca656af840dff83e8264ecf986ca'
+        ];
+        const lastTokenPairs = [...defaultTokenPairs];
+
+        function createCharts() {
+            const container = document.getElementById('chartContainer');
+            container.innerHTML = '';
+            
+            defaultTokenPairs.forEach((pair, index) => {
+                const [chain, address] = pair.split('/');
+                const wrapper = document.createElement('div');
+                wrapper.className = 'chart-wrapper';
+
+                const inputContainer = document.createElement('div');
+                inputContainer.className = 'input-container';
+
+                const chainSelect = document.createElement('select');
+                chains.forEach(c => {
+                    const option = document.createElement('option');
+                    option.value = c;
+                    option.textContent = c;
+                    if (c === chain) option.selected = true;
+                    chainSelect.appendChild(option);
+                });
+
+                const addressInput = document.createElement('input');
+                addressInput.type = 'text';
+                addressInput.value = address;
+                addressInput.placeholder = 'Token Address';
+
+                const updateBtn = document.createElement('button');
+                updateBtn.textContent = 'Update';
+                updateBtn.onclick = () => updateChart(index, chainSelect.value, addressInput.value);
+
+                const copyBtn = document.createElement('button');
+                copyBtn.textContent = 'Copy';
+                copyBtn.className = 'copy-btn';
+                copyBtn.onclick = () => copyToClipboard(addressInput.value);
+
+                const lastBtn = document.createElement('button');
+                lastBtn.textContent = 'Last';
+                lastBtn.className = 'last-btn';
+                lastBtn.onclick = () => loadLastChart(index);
+
+                inputContainer.appendChild(chainSelect);
+                inputContainer.appendChild(addressInput);
+                inputContainer.appendChild(updateBtn);
+                inputContainer.appendChild(copyBtn);
+                inputContainer.appendChild(lastBtn);
+
+                const chart = document.createElement('div');
+                chart.className = 'chart';
+                chart.innerHTML = `<iframe src="https://dexscreener.com/${pair}?embed=1&theme=dark&trades=0&info=0" style="width:100%;height:100%;border:none;"></iframe>`;
+
+                wrapper.appendChild(inputContainer);
+                wrapper.appendChild(chart);
+                container.appendChild(wrapper);
+            });
+        }
+
+        function updateChart(index, chain, address) {
+            const pair = `${chain}/${address}`;
+            const iframe = document.querySelectorAll('.chart iframe')[index];
+            iframe.src = `https://dexscreener.com/${pair}?embed=1&theme=dark&trades=0&info=0`;
+            lastTokenPairs[index] = defaultTokenPairs[index];
+            defaultTokenPairs[index] = pair;
+            updateInputFields(index, chain, address);
+        }
+
+        function loadLastChart(index) {
+            if (lastTokenPairs[index] !== defaultTokenPairs[index]) {
+                const [chain, address] = lastTokenPairs[index].split('/');
+                const iframe = document.querySelectorAll('.chart iframe')[index];
+                iframe.src = `https://dexscreener.com/${lastTokenPairs[index]}?embed=1&theme=dark&trades=0&info=0`;
+                updateInputFields(index, chain, address);
+                
+                // Swap current and last token pairs
+                const temp = defaultTokenPairs[index];
+                defaultTokenPairs[index] = lastTokenPairs[index];
+                lastTokenPairs[index] = temp;
+            }
+        }
+
+        function updateInputFields(index, chain, address) {
+            const wrapper = document.querySelectorAll('.chart-wrapper')[index];
+            const chainSelect = wrapper.querySelector('select');
+            const addressInput = wrapper.querySelector('input');
+            
+            chainSelect.value = chain;
+            addressInput.value = address;
+        }
+
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).then(() => {
+                alert('Address copied to clipboard!');
+            }).catch(err => {
+                console.error('Failed to copy: ', err);
+            });
+        }
+
+        createCharts();
+    </script>
+</body>
+</html>
